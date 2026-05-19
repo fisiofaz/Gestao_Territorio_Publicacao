@@ -19,24 +19,33 @@ export default function Sidebar() {
   ];
 
   return (
-    <div className="w-64 h-screen bg-slate-900 text-white p-5">
-      <h2 className="text-xl font-bold mb-8">Congregação <br /> Tropical</h2>
+    <div className="w-64 h-screen bg-white dark:bg-slate-800 border-r dark:border-slate-700 p-5 transition-colors">
+
+      <h2 className="text-xl font-bold mb-8 text-gray-800 dark:text-gray-100">
+        Congregação <br /> Tropical
+      </h2>
 
       <nav className="flex flex-col gap-2">
-        {menu.map((item) => (
-          <Link
-            key={item.name}
-            to={item.path}
-            className={`flex items-center gap-3 p-2 rounded-lg transition ${
-              location.pathname === item.path
-                ? "bg-blue-600"
-                : "hover:bg-slate-700"
-            }`}
-          >
-            {item.icon}
-            {item.name}
-          </Link>
-        ))}
+        {menu.map((item) => {
+          const isActive = location.pathname === item.path;
+
+          return (
+            <Link
+              key={item.name}
+              to={item.path}
+              className={`flex items-center gap-2 p-2 rounded transition-all
+                ${
+                  isActive
+                    ? "bg-blue-600 text-white"
+                    : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700"
+                }
+              `}
+            >
+              {item.icon}
+              {item.name}
+            </Link>
+          );
+        })}
       </nav>
     </div>
   );

@@ -1,3 +1,3 @@
-export default function Publicacoes() {
-  return <h1>Publicações</h1>;
+export default function Pedidos() {
+  return <h1>Pedidos</h1>;
 }

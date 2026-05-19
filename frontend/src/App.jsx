@@ -7,61 +7,23 @@ import Territorios from "./pages/Territorios";
 import Publicacoes from "./pages/Publicacoes";
 import Pedidos from "./pages/Pedidos";
 
-
 function App() {
-
   return (
     <BrowserRouter>
       <Routes>
 
-        {/* REDIRECIONAMENTO */}
         <Route path="/" element={<Navigate to="/dashboard" />} />
 
-        {/* ROTAS PROTEGIDAS */}
-        <Route
-          path="/dashboard"
-          element={
-            <MainLayout>
-              <Dashboard />
-            </MainLayout>
-          }
-        />
+        {/* Layout envolvendo tudo */}
+        <Route element={<MainLayout />}>
 
-        <Route
-          path="/publicadores"
-          element={
-            <MainLayout>
-              <Publicadores />
-            </MainLayout>
-          }
-        />
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/publicadores" element={<Publicadores />} />
+          <Route path="/territorios" element={<Territorios />} />
+          <Route path="/publicacoes" element={<Publicacoes />} />
+          <Route path="/pedidos" element={<Pedidos />} />
 
-        <Route
-          path="/territorios"
-          element={
-            <MainLayout>
-              <Territorios />
-            </MainLayout>
-          }
-        />
-
-        <Route
-          path="/publicacoes"
-          element={
-            <MainLayout>
-              <Publicacoes />
-            </MainLayout>
-          }
-        />
-
-        <Route
-          path="/pedidos"
-          element={
-            <MainLayout>
-              <Pedidos />
-            </MainLayout>
-          }
-        />
+        </Route>
 
       </Routes>
     </BrowserRouter>

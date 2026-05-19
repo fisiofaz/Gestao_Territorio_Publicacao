@@ -1,41 +1,19 @@
-import { useState, useEffect } from "react";
-import { ThemeContext } from "../context/ThemeContext";
+import { Outlet } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import Topbar from "../components/Topbar";
 
-export default function ThemeProvider({ children }) {
-  const [dark, setDark] = useState(() => {
-    return localStorage.getItem("theme") === "dark";
-  });
-
-  useEffect(() => {
-    const root = window.document.documentElement;
-
-    if (dark) {
-      root.classList.add("dark");
-      localStorage.setItem("theme", "dark");
-    } else {
-      root.classList.remove("dark");
-      localStorage.setItem("theme", "light");
-    }
-  }, [dark]);
-
-
-
+export default function MainLayout() {
   return (
+    <div className="flex">
+      <Sidebar />
 
-    <ThemeContext.Provider value={{ dark, setDark }}>
-      <div className="flex">
-        <Sidebar />
+      <div className="flex-1 min-h-screen bg-slate-100 dark:bg-slate-900 transition-colors">
+        <Topbar />
 
-        <div className="flex-1 min-h-screen bg-slate-100 dark:bg-slate-900">
-          <Topbar />
-
-          <div className="p-6">
-            {children}
-          </div>
+        <div className="p-6 text-gray-900 dark:text-gray-100">
+          <Outlet />
         </div>
       </div>
-    </ThemeContext.Provider>
+    </div>
   );
 }
