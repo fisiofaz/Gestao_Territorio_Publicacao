@@ -4,6 +4,7 @@ export const api = axios.create({
   baseURL: "http://localhost:8080",
 });
 
+// 🔐 REQUEST → envia token automaticamente
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem("token");
 
@@ -13,3 +14,20 @@ api.interceptors.request.use((config) => {
 
   return config;
 });
+
+// 🚨 RESPONSE → trata erros globais (403, 401)
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 403 || error.response?.status === 401) {
+      console.warn("Sessão expirada!");
+
+      localStorage.removeItem("token");
+
+      // 🔥 força logout global
+      window.location.href = "/login";
+    }
+
+    return Promise.reject(error);
+  }
+);

@@ -1,13 +1,16 @@
 import { useContext } from "react";
 import { ThemeContext } from "../context/ThemeContext";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../hooks/useAuth";
 
 export default function Topbar() {
   const { dark, setDark } = useContext(ThemeContext);
   const navigate = useNavigate();
 
+  const { logout } = useAuth();
+
   const handleLogout = () => {
-    localStorage.removeItem("user");
+    logout();
     navigate("/login");
   };
 

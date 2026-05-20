@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { useAuth } from "./hooks/useAuth";
 
 import MainLayout from "./layout/MainLayout";
 import PrivateRoute from "./routes/PrivateRoute";
@@ -12,6 +13,17 @@ import Pedidos from "./pages/Pedidos";
 
 
 function App() {
+  const { user } = useAuth();
+
+  // 🔥 BLOQUEIA enquanto valida autenticação
+  if (user === undefined) {
+    return (
+      <div className="h-screen flex items-center justify-center">
+        Carregando...
+      </div>
+    );
+  }
+
   return (
     <BrowserRouter>
       <Routes>

@@ -1,21 +1,30 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { api } from "../services/api";
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../hooks/useAuth";
 
 export default function Login() {
+  const { login, user } = useAuth();
+  const navigate = useNavigate();
+   
   const [form, setForm] = useState({
     email: "",
     senha: "",
   });
 
-  const navigate = useNavigate();
+   useEffect(() => {
+    if (user) {
+      navigate("/dashboard");
+    }
+  }, [user, navigate]);
+ 
 
   const handleLogin = async () => {
     try {
       const res = await api.post("/auth/login", form);
 
-      localStorage.setItem("user", JSON.stringify(res.data));
+      login(res.data.token);
 
       toast.success("Login realizado!");
       navigate("/dashboard");
@@ -23,6 +32,7 @@ export default function Login() {
     } catch {
       toast.error("Credenciais inválidas");
     }
+    
   };
 
   return (
