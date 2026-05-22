@@ -24,7 +24,7 @@ export default function Login() {
     try {
       const res = await api.post("/auth/login", form);
 
-      login(res.data.token);
+      login(res.data);
 
       toast.success("Login realizado!");
       navigate("/dashboard");

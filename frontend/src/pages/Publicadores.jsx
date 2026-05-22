@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import toast from "react-hot-toast";
 import { api } from "../services/api";
+import { useAuth } from "../hooks/useAuth";
 
 export default function Publicadores() {
   const [showModal, setShowModal] = useState(false);
@@ -8,6 +9,7 @@ export default function Publicadores() {
   const [publicadores, setPublicadores] = useState([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);  
+  const { user } = useAuth();
 
   const [form, setForm] = useState({
     nome: "",
@@ -117,12 +119,22 @@ export default function Publicadores() {
               </tr>
             </thead>
             <tbody>
-              {publicadores.map((p) => (
-                <tr 
-                  key={p.id} 
-                  className="border-t border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700 transition"
-                >
-                  <td className="p-3 gap-2 text-gray-800 dark:text-gray-100">
+              {publicadores.length === 0 ? (
+                 <tr>
+                  <td colSpan="3" className="text-center py-10">
+                    <div className="flex flex-col items-center gap-2 text-gray-500">
+                      <span className="text-4xl">📭</span>
+                      <p>Nenhum publicador cadastrado</p>
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                publicadores.map((p) => (
+                  <tr 
+                    key={p.id} 
+                    className="border-t border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700 transition"
+                  >
+                    <td className="p-3 gap-2 text-gray-800 dark:text-gray-100">
                     {p.nome}
                   </td>
                   <td className="p-3 text-gray-800 dark:text-gray-100">
@@ -130,28 +142,29 @@ export default function Publicadores() {
                   </td>
 
                   <td className="p-3 text-right space-x-3">
-                    <button
-                      onClick={() => {
-                        setForm({
-                          nome: p.nome,
-                          telefone: p.telefone,
-                        });
-                        setEditingId(p.id);
-                        setShowModal(true);
-                      }}
-                      className="text-blue-600 hover:underline"
-                    >
-                      Editar
-                    </button>
-                    <button
-                      onClick={() => handleDelete(p.id)}
-                      className="text-red-500 hover:underline"
-                    >
-                      Excluir
-                    </button>
+                    {user?.role === "ADMIN" && (
+                      <button
+                        onClick={() => {
+                          setForm(p);
+                          setEditingId(p.id);
+                          setShowModal(true);
+                        }}
+                        className="text-blue-600 hover:underline"
+                      >
+                        Editar
+                      </button>
+                    )}  
+                    {user?.role === "ADMIN" && (
+                      <button
+                        onClick={() => handleDelete(p.id)}
+                        className="text-red-500 hover:underline"
+                      >
+                        Excluir
+                      </button>
+                    )}
                   </td>
                 </tr>
-              ))}
+              )))}
             </tbody>
           </table>
         </div>

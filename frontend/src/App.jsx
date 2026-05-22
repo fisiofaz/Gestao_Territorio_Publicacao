@@ -3,6 +3,7 @@ import { useAuth } from "./hooks/useAuth";
 
 import MainLayout from "./layout/MainLayout";
 import PrivateRoute from "./routes/PrivateRoute";
+import Loader from "./components/Loader";
 
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
@@ -10,6 +11,7 @@ import Publicadores from "./pages/Publicadores";
 import Territorios from "./pages/Territorios";
 import Publicacoes from "./pages/Publicacoes";
 import Pedidos from "./pages/Pedidos";
+import AdminPage from "./pages/AdminPage";
 
 
 function App() {
@@ -17,11 +19,7 @@ function App() {
 
   // 🔥 BLOQUEIA enquanto valida autenticação
   if (user === undefined) {
-    return (
-      <div className="h-screen flex items-center justify-center">
-        Carregando...
-      </div>
-    );
+    return <Loader />;
   }
 
   return (
@@ -42,7 +40,14 @@ function App() {
             </PrivateRoute>
           }
         >
-
+          <Route
+            path="/admin"
+            element={
+              <PrivateRoute role="ADMIN">
+                <AdminPage />
+              </PrivateRoute>
+            }
+          />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/publicadores" element={<Publicadores />} />
           <Route path="/territorios" element={<Territorios />} />

@@ -6,8 +6,10 @@ import com.congregacao.backend.repository.UsuarioRepository;
 import com.congregacao.backend.service.JwtService;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
 import java.util.Optional;
 
 @RestController
@@ -22,14 +24,26 @@ public class AuthController {
     private JwtService jwtService;
 
     @PostMapping("/login")
-    public String login(@RequestBody LoginDTO dto) {
+    public ResponseEntity<?> login(@RequestBody LoginDTO dto) {
 
         Optional<Usuario> user = usuarioRepository.findByEmail(dto.getEmail());
 
         if (user.isPresent() && user.get().getSenha().equals(dto.getSenha())) {
-            return jwtService.gerarToken(dto.getSenha());
+
+            Usuario usuario = user.get();
+
+            String token = jwtService.gerarToken(
+            	    usuario.getEmail(),
+            	    usuario.getRole()
+            );
+
+            return ResponseEntity.ok(Map.of(
+                "token", token,
+                "email", usuario.getEmail(),
+                "role", usuario.getRole()
+            ));
         }
 
-        throw new RuntimeException("Credenciais inválidas");
+        return ResponseEntity.status(401).body("Credenciais inválidas");
     }
 }

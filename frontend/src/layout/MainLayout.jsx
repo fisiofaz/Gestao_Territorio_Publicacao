@@ -4,13 +4,13 @@ import Topbar from "../components/Topbar";
 
 export default function MainLayout() {
   return (
-    <div className="flex">
+    <div className="flex h-screen">
       <Sidebar />
 
-      <div className="flex-1 min-h-screen bg-slate-100 dark:bg-slate-900 transition-colors">
+      <div className="flex-1 flex flex-col">
         <Topbar />
 
-        <div className="p-6 text-gray-900 dark:text-gray-100">
+        <div className="p-6 bg-slate-100 dark:bg-slate-900 flex-1 overflow-auto">
           <Outlet />
         </div>
       </div>

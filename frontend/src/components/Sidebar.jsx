@@ -1,3 +1,4 @@
+import { useAuth } from "../hooks/useAuth";
 import { Link, useLocation } from "react-router-dom";
 import {
   LayoutDashboard,
@@ -8,9 +9,14 @@ import {
 } from "lucide-react";
 
 export default function Sidebar() {
+  const { user } = useAuth();
   const location = useLocation();
 
   const menu = [
+    ...(user?.role === "ADMIN"
+      ? [{ name: "Admin", icon: <LayoutDashboard size={18} />, path: "/admin" }]
+      : []),
+
     { name: "Dashboard", icon: <LayoutDashboard size={18} />, path: "/dashboard" },
     { name: "Publicadores", icon: <Users size={18} />, path: "/publicadores" },
     { name: "Territórios", icon: <Map size={18} />, path: "/territorios" },

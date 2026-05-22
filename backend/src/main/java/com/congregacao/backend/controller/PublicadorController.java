@@ -1,5 +1,6 @@
 package com.congregacao.backend.controller;
 
+import org.springframework.security.access.prepost.PreAuthorize;
 import com.congregacao.backend.model.Publicador;
 import com.congregacao.backend.service.PublicadorService;
 import org.springframework.web.bind.annotation.*;
@@ -22,16 +23,19 @@ public class PublicadorController {
         return service.listar();
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
     public Publicador criar(@RequestBody Publicador publicador) {
         return service.salvar(publicador);
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{id}")
     public Publicador atualizar(@PathVariable Long id, @RequestBody Publicador publicador) {
         return service.atualizar(id, publicador);
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")
     public void excluir(@PathVariable Long id) {
         service.excluir(id);

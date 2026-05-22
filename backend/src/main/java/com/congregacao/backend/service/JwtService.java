@@ -5,24 +5,22 @@ import io.jsonwebtoken.security.Keys;
 import org.springframework.stereotype.Service;
 
 import java.security.Key;
-import java.util.Date;
 
 @Service
 public class JwtService {
 
     private final String SECRET = "minha-chave-secreta-super-segura-123456";
 
-    private Key getKey() {
+    public Key getKey() {
         return Keys.hmacShaKeyFor(SECRET.getBytes());
     }
 
-    public String gerarToken(String email) {
+    public String gerarToken(String email, String role) {
         return Jwts.builder()
-                .setSubject(email)
-                .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60)) // 1h
-                .signWith(getKey(), SignatureAlgorithm.HS256)
-                .compact();
+            .setSubject(email)
+            .claim("role", role)
+            .signWith(getKey())
+            .compact();
     }
 
     public String validarToken(String token) {

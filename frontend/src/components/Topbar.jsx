@@ -4,10 +4,9 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 
 export default function Topbar() {
+  const { user, logout } = useAuth();
   const { dark, setDark } = useContext(ThemeContext);
   const navigate = useNavigate();
-
-  const { logout } = useAuth();
 
   const handleLogout = () => {
     logout();
@@ -39,7 +38,7 @@ export default function Topbar() {
             Olá,
           </span>
           <span className="font-medium dark:text-white">
-            👤 Admin
+           👤 {user?.email || " Admin"}
           </span>
         </div>
         

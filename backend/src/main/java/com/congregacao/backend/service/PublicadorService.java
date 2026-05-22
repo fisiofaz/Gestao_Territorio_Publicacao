@@ -2,10 +2,14 @@ package com.congregacao.backend.service;
 
 import com.congregacao.backend.model.Publicador;
 import com.congregacao.backend.repository.PublicadorRepository;
+
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 
+
+@EnableMethodSecurity
 @Service
 public class PublicadorService {
 

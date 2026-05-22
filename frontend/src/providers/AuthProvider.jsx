@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AuthContext } from "../context/AuthContext";
 import { api } from "../services/api";
 
@@ -8,11 +8,23 @@ export function AuthProvider({ children }) {
     return token ? { email: "logado" } : null;
   });
 
-  const login = (token) => {
-    localStorage.setItem("token", token);
-    api.defaults.headers.Authorization = `Bearer ${token}`;
-    setUser({ email: "logado" });
-  };
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      api.defaults.headers.Authorization = `Bearer ${token}`;
+    }
+  }, []);
+
+  const login = (data) => {
+    localStorage.setItem("token", data.token);
+
+    api.defaults.headers.Authorization = `Bearer ${data.token}`;
+
+    setUser({
+      email: data.email,
+      role: data.role,
+    });
+  }
 
   const logout = () => {
     localStorage.removeItem("token");
