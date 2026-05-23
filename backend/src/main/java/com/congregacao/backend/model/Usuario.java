@@ -1,7 +1,9 @@
 package com.congregacao.backend.model;
 
 import jakarta.persistence.*;
+import lombok.Data;
 
+@Data
 @Entity
 @Table(name = "usuarios")
 public class Usuario {
@@ -24,7 +26,12 @@ public class Usuario {
     public Long getId() {
         return id;
     }
+    
+    public void setId(Long id) {
+        this.id = id;
+    }
 
+    
     public String getEmail() {
         return email;
     }

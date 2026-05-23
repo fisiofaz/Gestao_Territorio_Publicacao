@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "./hooks/useAuth";
+import { Toaster } from "react-hot-toast";
 
 import MainLayout from "./layout/MainLayout";
 import PrivateRoute from "./routes/PrivateRoute";
@@ -7,6 +8,7 @@ import Loader from "./components/Loader";
 
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
+import Usuarios from "./pages/Usuarios";
 import Publicadores from "./pages/Publicadores";
 import Territorios from "./pages/Territorios";
 import Publicacoes from "./pages/Publicacoes";
@@ -24,6 +26,7 @@ function App() {
 
   return (
     <BrowserRouter>
+      <Toaster position="top-right" />
       <Routes>
 
         {/* LOGIN */}
@@ -48,6 +51,7 @@ function App() {
               </PrivateRoute>
             }
           />
+          <Route path="/usuarios" element={<Usuarios />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/publicadores" element={<Publicadores />} />
           <Route path="/territorios" element={<Territorios />} />

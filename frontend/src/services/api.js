@@ -19,13 +19,17 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 403 || error.response?.status === 401) {
+   if (error.response?.status === 401) {
       console.warn("Sessão expirada!");
 
       localStorage.removeItem("token");
 
       // 🔥 força logout global
       window.location.href = "/login";
+    }
+
+    if (status === 403) {
+      console.warn("Acesso negado!");
     }
 
     return Promise.reject(error);

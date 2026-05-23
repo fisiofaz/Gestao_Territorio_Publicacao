@@ -16,8 +16,9 @@ export default function Sidebar() {
     ...(user?.role === "ADMIN"
       ? [{ name: "Admin", icon: <LayoutDashboard size={18} />, path: "/admin" }]
       : []),
-
+    
     { name: "Dashboard", icon: <LayoutDashboard size={18} />, path: "/dashboard" },
+    { name: "Usuários", icon: <Users size={18} />, path: "/usuarios" },  
     { name: "Publicadores", icon: <Users size={18} />, path: "/publicadores" },
     { name: "Territórios", icon: <Map size={18} />, path: "/territorios" },
     { name: "Publicações", icon: <BookOpen size={18} />, path: "/publicacoes" },
