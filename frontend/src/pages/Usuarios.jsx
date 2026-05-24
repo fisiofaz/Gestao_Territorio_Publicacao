@@ -9,7 +9,13 @@ export default function Usuarios() {
   const [error, setError] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
-
+  const [busca, setBusca] = useState("");
+  const [filtroRole, setFiltroRole] = useState("ALL");
+  const [buscaDebounce, setBuscaDebounce] = useState("");
+  const [ordenacao, setOrdenacao] = useState("email_asc");
+  const [paginaAtual, setPaginaAtual] = useState(1);
+  const itensPorPagina = 5;
+  
 
   const [form, setForm] = useState({
     email: "",
@@ -63,6 +69,15 @@ export default function Usuarios() {
     };
   }, []);
 
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setBuscaDebounce(busca);
+    }, 300); // 300ms padrão profissional
+
+    return () => clearTimeout(timer);
+  }, [busca]);
+
+  
   // 🔥 SALVAR
   const salvar = async () => {
     try {
@@ -103,6 +118,17 @@ export default function Usuarios() {
     }
   };
 
+  const usuariosFiltrados = usuarios.filter((u) => {
+    const matchBusca = u.email
+      .toLowerCase()
+      .includes(buscaDebounce.toLowerCase())
+
+    const matchRole =
+      filtroRole === "ALL" || u.role === filtroRole;
+
+    return matchBusca && matchRole;
+  });
+
   // 🔥 LOADING
   if (loading) {
     return (
@@ -114,22 +140,108 @@ export default function Usuarios() {
     );
   }
 
+  const highlight = (text, search) => {
+    if (!search) return text;
+
+    const escapeRegex = (text) =>
+      text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const regex = new RegExp(`(${escapeRegex(search)})`, "gi");
+    const parts = text.split(regex);
+
+    return parts.map((part, i) =>
+      part.toLowerCase() === search.toLowerCase() ? (
+        <mark key={i} className="bg-yellow-300 text-black px-1 rounded transition-all">
+          {part}
+        </mark>
+      ) : (
+        part
+      )
+    );
+  };
+
+  const usuariosOrdenados = [...usuariosFiltrados].sort((a, b) => {
+    switch (ordenacao) {
+      case "email_asc":
+        return a.email.localeCompare(b.email);
+
+      case "email_desc":
+        return b.email.localeCompare(a.email);
+
+      case "role":
+        return a.role.localeCompare(b.role);
+
+      default:
+        return 0;
+    }
+  });
+
+  const indexFinal = paginaAtual * itensPorPagina;
+  const indexInicial = indexFinal - itensPorPagina;
+
+  const usuariosPaginados = usuariosOrdenados.slice(
+    indexInicial,
+    indexFinal
+  );
+
+  const totalPaginas = Math.ceil(
+    usuariosFiltrados.length / itensPorPagina
+  );
+
   return (
     <div className="space-y-6">
 
       {/* HEADER */}
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <h1 className="text-2xl font-bold text-gray-800 dark:text-white">
           Usuários
         </h1>
+        <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+          {/* BUSCA */}
+          <input
+            type="text"
+            placeholder="Buscar por email..."
+            value={busca}
+            onChange={(e) => {
+              setBusca(e.target.value);
+              setPaginaAtual(1);
+            }}
+            className="w-full sm:flex-1 p-2 border rounded dark:bg-slate-700 dark:text-white"
+          />
 
+          {/* FILTRO */}
+          <select
+            value={filtroRole}
+            onChange={(e) => {
+              setFiltroRole(e.target.value);
+              setPaginaAtual(1);
+            }}
+            className="p-2 border rounded dark:bg-slate-700 dark:text-white"
+          >
+            <option value="ALL">Todos</option>
+            <option value="ADMIN">Admins</option>
+            <option value="USER">Usuários</option>
+          </select>
+          <select
+            value={ordenacao}
+            onChange={(e) => {
+              setOrdenacao(e.target.value);
+              setPaginaAtual(1);
+            }}
+            className="p-2 border rounded dark:bg-slate-700 dark:text-white"
+          >
+            <option value="email_asc">Email A-Z</option>
+            <option value="email_desc">Email Z-A</option>
+            <option value="role">Por Role</option>
+          </select>
+
+        </div>
         <button
           onClick={() => {
             setModalOpen(true);
             setEditingId(null);
             setForm({ email: "", senha: "", role: "USER" });
           }}
-          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition"
+          className="w-full sm:w-auto bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition"
         >
           + Novo usuário
         </button>
@@ -142,23 +254,23 @@ export default function Usuarios() {
       )}
 
       {/* EMPTY STATE */}
-      {!usuarios || usuarios.length === 0 ? (
+      {!usuarios || usuariosFiltrados.length === 0 ? (
         <div className="text-center py-10 text-gray-500">
           Nenhum usuário encontrado 😢
         </div>
       ) : (
         <div className="grid gap-4">
-          {usuarios.map((u) => (
+         {usuariosPaginados.map((u) => (
             <div
               key={u.id}
               className="bg-white dark:bg-slate-800 p-4 rounded-xl shadow 
-              flex justify-between items-center 
+              flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3
               border border-gray-200 dark:border-slate-700
               hover:shadow-lg hover:scale-[1.01] transition-all"
             >
               <div>
-                <p className="font-medium text-gray-800 dark:text-white">
-                  {u.email}
+                <p className="font-medium text-gray-800 dark:text-white">                  
+                    {highlight(u.email, buscaDebounce)}    
                 </p>
 
                 <span
@@ -172,7 +284,7 @@ export default function Usuarios() {
                 </span>
               </div>
 
-              <div className="flex gap-3">
+              <div className="flex gap-3 justify-end sm:justify-normal">
                 <button
                   onClick={() => editar(u)}
                   className="text-blue-600 hover:text-blue-800 text-sm"
@@ -192,10 +304,37 @@ export default function Usuarios() {
         </div>
       )}
 
+      <div className="flex flex-col sm:flex-row justify-between items-center gap-3 mt-4">
+
+        <span className="text-sm text-gray-500">
+          Página {paginaAtual} de {totalPaginas}
+        </span>
+
+        <div className="flex gap-2">
+
+          <button
+            disabled={paginaAtual === 1}
+            onClick={() => setPaginaAtual(paginaAtual - 1)}
+            className="px-3 py-1 border rounded disabled:opacity-50"
+          >
+            ← Anterior
+          </button>
+
+          <button
+            disabled={paginaAtual === totalPaginas}
+            onClick={() => setPaginaAtual(paginaAtual + 1)}
+            className="px-3 py-1 border rounded disabled:opacity-50"
+          >
+            Próxima →
+          </button>
+
+        </div>
+      </div>
+
       {/* MODAL */}
       {modalOpen && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center">
-          <div className="bg-white dark:bg-slate-800 p-6 rounded-xl w-[400px] shadow-lg">
+         <div className="bg-white dark:bg-slate-800 p-6 rounded-xl w-[90%] sm:w-[400px] max-h-[90vh] overflow-y-auto">
 
             <h2 className="text-lg font-bold mb-4 text-gray-800 dark:text-white">
               {editingId ? "Editar Usuário" : "Novo Usuário"}

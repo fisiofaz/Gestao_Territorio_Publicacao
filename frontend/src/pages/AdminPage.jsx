@@ -1,11 +1,10 @@
 import { useAuth } from "../hooks/useAuth";
-import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Users, ShieldCheck } from "lucide-react";
+import Usuarios from "./Usuarios";
 
 export default function AdminPage() {
   const { user } = useAuth();
-  const navigate = useNavigate();
 
   const card =
     "bg-white dark:bg-slate-800 p-5 rounded-xl shadow hover:shadow-xl transition flex items-center justify-between";
@@ -65,38 +64,19 @@ export default function AdminPage() {
             </motion.div>
         </div>
 
-        {/* AÇÕES RÁPIDAS */}       
-        <div>
-            <h3 className="text-lg font-semibold mb-4 dark:text-white">
-                Ações rápidas
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-               <motion.div
-                    whileHover={{ scale: 1.02 }}
-                    onClick={() => navigate("/usuarios")}
-                    className="cursor-pointer bg-white dark:bg-slate-800 p-6 rounded-xl shadow hover:shadow-xl transition"
-                >
-                    <h3 className="font-semibold text-gray-700 dark:text-white">
-                        Gerenciar Usuários
-                    </h3>
-                    <p className="text-sm text-gray-500">
-                        Criar, editar e remover usuários
-                    </p>
-                </motion.div>  
+        <div className="border-t border-gray-200 dark:border-slate-700 my-6" />
 
-                <motion.div
-                    whileHover={{ scale: 1.02 }}
-                    onClick={() => navigate("/configuracoes")}
-                    className="cursor-pointer bg-white dark:bg-slate-800 p-6 rounded-xl shadow hover:shadow-xl transition"
-                >
-                    <h3 className="font-semibold text-gray-700 dark:text-white">
-                        Configurações do Sistema
-                    </h3>
-                    <p className="text-sm text-gray-500">
-                        Ajustar parâmetros da aplicação
-                    </p>
-                </motion.div>                
-            </div>        
+        {/* GESTÃO DE USUÁRIOS */}
+        <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow">
+            <div className="flex justify-between items-center mb-4">
+                <h2 className="text-lg font-semibold text-gray-800 dark:text-white">
+                Gestão de Usuários
+                </h2>
+                <span className="text-sm text-gray-400">
+                Controle completo do sistema
+                </span>
+            </div>
+        <Usuarios />
         </div>
       </div>
     );
