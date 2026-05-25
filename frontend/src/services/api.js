@@ -1,4 +1,5 @@
 import axios from "axios";
+import toast from "react-hot-toast";
 
 export const api = axios.create({
   baseURL: "http://localhost:8080",
@@ -19,17 +20,19 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-   if (error.response?.status === 401) {
+
+    const status = error.response?.status;
+
+    if (status === 401) {
       console.warn("Sessão expirada!");
 
       localStorage.removeItem("token");
-
-      // 🔥 força logout global
       window.location.href = "/login";
     }
 
     if (status === 403) {
       console.warn("Acesso negado!");
+      toast.error("Você não tem permissão para acessar essa área");
     }
 
     return Promise.reject(error);

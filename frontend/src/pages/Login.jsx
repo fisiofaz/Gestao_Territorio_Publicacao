@@ -13,7 +13,8 @@ export default function Login() {
     senha: "",
   });
 
-   useEffect(() => {
+  
+  useEffect(() => {
     if (user) {
       navigate("/dashboard");
     }
@@ -24,6 +25,14 @@ export default function Login() {
     try {
       const res = await api.post("/auth/login", form);
 
+      // 🔥 SALVA NO LOCALSTORAGE
+      localStorage.setItem("token", res.data.token);
+      localStorage.setItem("user", JSON.stringify({
+        email: res.data.email,
+        role: res.data.role
+      }));
+
+      // 🔥 USA O CONTEXTO
       login(res.data);
 
       toast.success("Login realizado!");

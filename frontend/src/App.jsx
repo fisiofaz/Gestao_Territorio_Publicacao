@@ -17,10 +17,10 @@ import AdminPage from "./pages/AdminPage";
 
 
 function App() {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
 
-  // 🔥 BLOQUEIA enquanto valida autenticação
-  if (user === undefined) {
+  // 🔥 BLOQUEIA APP INTEIRO (SEM FLICKER)
+  if (loading) {
     return <Loader />;
   }
 
@@ -30,7 +30,10 @@ function App() {
       <Routes>
 
         {/* LOGIN */}
-        <Route path="/login" element={<Login />} />
+        <Route 
+          path="/login" 
+          element={user ? <Navigate to="/dashboard" /> : <Login />}
+        />
 
         {/* REDIRECIONAMENTO */}
         <Route path="/" element={<Navigate to="/dashboard" />} />

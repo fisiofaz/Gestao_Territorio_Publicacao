@@ -5,6 +5,7 @@ import io.jsonwebtoken.security.Keys;
 import org.springframework.stereotype.Service;
 
 import java.security.Key;
+import java.util.Date;
 
 @Service
 public class JwtService {
@@ -19,6 +20,8 @@ public class JwtService {
         return Jwts.builder()
             .setSubject(email)
             .claim("role", role)
+            .setIssuedAt(new Date()) // 🔥 quando foi criado
+            .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 24 * 7)) // 🔥 7 dias
             .signWith(getKey())
             .compact();
     }
