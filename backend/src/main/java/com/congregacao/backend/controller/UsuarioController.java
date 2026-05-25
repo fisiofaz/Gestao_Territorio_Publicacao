@@ -1,7 +1,7 @@
 package com.congregacao.backend.controller;
 
 import com.congregacao.backend.model.Usuario;
-import com.congregacao.backend.repository.UsuarioRepository;
+import com.congregacao.backend.service.UsuarioService;
 
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -13,38 +13,37 @@ import java.util.List;
 @CrossOrigin
 public class UsuarioController {
 
-    private final UsuarioRepository repository;
+	private final UsuarioService service;
 
-    public UsuarioController(UsuarioRepository repository) {
-        this.repository = repository;
-    }
-
+	public UsuarioController(UsuarioService service) {
+	    this.service = service;
+	}
+	
     // 🔥 LISTAR
     @GetMapping
     @PreAuthorize("hasRole('ADMIN')")
     public List<Usuario> listar() {
-        return repository.findAll();
+        return service.listar();
     }
 
     // 🔥 CRIAR
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
     public Usuario criar(@RequestBody Usuario usuario) {
-        return repository.save(usuario);
+        return service.criar(usuario);
     }
 
     // 🔥 ATUALIZAR
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public Usuario atualizar(@PathVariable Long id, @RequestBody Usuario usuario) {
-        usuario.setId(id);
-        return repository.save(usuario);
+        return service.atualizar(id, usuario);
     }
 
     // 🔥 DELETAR
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public void deletar(@PathVariable Long id) {
-        repository.deleteById(id);
+    	service.deletar(id);
     }
 }
