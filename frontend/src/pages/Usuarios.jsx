@@ -73,11 +73,21 @@ export default function Usuarios() {
         });
 
         if (mounted) {
-          setUsuarios(res.data.content);
-          setTotalPaginas(res.data.totalPages);
+          if (res.data.content) {
+            setUsuarios(res.data.content);
+            setTotalPaginas(res.data.totalPages);
+          } else {
+            setUsuarios(res.data);
+            setTotalPaginas(1);
+          }
         }
       } catch (error) {
         console.error(error);
+        if (error.response) {
+          setError(`Erro ${error.response.status}`);
+        } else {
+          setError("Erro de conexão");
+        }
       } finally {
         if (mounted) setLoading(false);
       }

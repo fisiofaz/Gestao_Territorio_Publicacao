@@ -1,5 +1,11 @@
 package com.congregacao.backend.repository;
 
-public class TerritorioRepository {
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
+import com.congregacao.backend.model.Territorio;
+
+public interface TerritorioRepository extends 
+	JpaRepository<Territorio, Long>, 
+	JpaSpecificationExecutor<Territorio> {
 }
