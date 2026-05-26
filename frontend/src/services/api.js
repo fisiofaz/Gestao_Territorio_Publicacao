@@ -1,5 +1,4 @@
 import axios from "axios";
-import toast from "react-hot-toast";
 
 export const api = axios.create({
   baseURL: "http://localhost:8080",
@@ -32,7 +31,6 @@ api.interceptors.response.use(
 
     if (status === 403) {
       console.warn("Acesso negado!");
-      toast.error("Você não tem permissão para acessar essa área");
     }
 
     return Promise.reject(error);

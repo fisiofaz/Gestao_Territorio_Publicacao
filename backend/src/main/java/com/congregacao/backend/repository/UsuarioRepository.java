@@ -1,9 +1,14 @@
 package com.congregacao.backend.repository;
 
-import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import com.congregacao.backend.model.Usuario;
 
-public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
-    Optional<Usuario> findByEmail(String email);
+import java.util.Optional;
+
+public interface UsuarioRepository extends 
+	JpaRepository<Usuario, Long>, 
+	JpaSpecificationExecutor<Usuario> {
+	
+	Optional<Usuario> findByEmail(String email);
 }

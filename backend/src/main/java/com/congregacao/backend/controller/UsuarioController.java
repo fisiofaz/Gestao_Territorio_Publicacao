@@ -2,11 +2,12 @@ package com.congregacao.backend.controller;
 
 import com.congregacao.backend.model.Usuario;
 import com.congregacao.backend.service.UsuarioService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/usuarios")
@@ -20,11 +21,15 @@ public class UsuarioController {
 	}
 	
     // 🔥 LISTAR
-    @GetMapping
-    @PreAuthorize("hasRole('ADMIN')")
-    public List<Usuario> listar() {
-        return service.listar();
-    }
+	@GetMapping
+	@PreAuthorize("hasRole('ADMIN')")
+	public Page<Usuario> listar(
+	        @RequestParam(required = false) String search,
+	        @RequestParam(required = false) String role,
+	        Pageable pageable
+	) {
+	    return service.listar(search, role, pageable);
+	}
 
     // 🔥 CRIAR
     @PostMapping

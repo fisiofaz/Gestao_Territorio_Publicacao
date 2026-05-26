@@ -2,11 +2,14 @@ package com.congregacao.backend.service;
 
 import com.congregacao.backend.model.Usuario;
 import com.congregacao.backend.repository.UsuarioRepository;
+import com.congregacao.backend.specification.UsuarioSpecification;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
-
-import java.util.List;
 
 @Service
 public class UsuarioService {
@@ -20,8 +23,14 @@ public class UsuarioService {
     }
 
     // 🔥 LISTAR
-    public List<Usuario> listar() {
-        return repository.findAll();
+    public Page<Usuario> listar(String search, String role, Pageable pageable) {
+
+    	Specification<Usuario> spec = Specification.allOf(
+    	        UsuarioSpecification.emailContains(search),
+    	        UsuarioSpecification.roleEquals(role)
+    	);
+
+        return repository.findAll(spec, pageable);
     }
 
     // 🔥 CRIAR

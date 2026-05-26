@@ -4,6 +4,7 @@ import com.congregacao.backend.dto.LoginDTO;
 import com.congregacao.backend.model.Usuario;
 import com.congregacao.backend.repository.UsuarioRepository;
 import com.congregacao.backend.service.JwtService;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -23,13 +24,16 @@ public class AuthController {
 
     @Autowired
     private JwtService jwtService;
+    
+    @Autowired
+    private BCryptPasswordEncoder encoder;
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginDTO dto) {
 
         Optional<Usuario> user = usuarioRepository.findByEmail(dto.getEmail());
 
-        if (user.isPresent() && user.get().getSenha().equals(dto.getSenha())) {
+        if (user.isPresent() && encoder.matches(dto.getSenha(), user.get().getSenha())) {
 
             Usuario usuario = user.get();
 

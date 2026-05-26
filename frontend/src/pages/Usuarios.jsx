@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import toast from "react-hot-toast";
 import { api } from "../services/api";
 
@@ -11,10 +11,9 @@ export default function Usuarios() {
   const [editingId, setEditingId] = useState(null);
   const [busca, setBusca] = useState("");
   const [filtroRole, setFiltroRole] = useState("ALL");
-  const [buscaDebounce, setBuscaDebounce] = useState("");
-  const [ordenacao, setOrdenacao] = useState("email_asc");
+  const [totalPaginas, setTotalPaginas] = useState(0);
   const [paginaAtual, setPaginaAtual] = useState(1);
-  const itensPorPagina = 5;
+  const [ordenacao, setOrdenacao] = useState("email_asc");
   
 
   const [form, setForm] = useState({
@@ -42,23 +41,45 @@ export default function Usuarios() {
     }
   };
 
+  const getSortParam = useCallback(() => {
+    switch (ordenacao) {
+      case "email_asc":
+        return "email,asc";
+      case "email_desc":
+        return "email,desc";
+      case "role":
+        return "role,asc";
+      default:
+        return "email,asc";
+    }
+  }, [ordenacao]);
+
   // 🔥 USE EFFECT CORRETO (SEM DUPLICAÇÃO)
  useEffect(() => {
     let mounted = true;
 
     const fetchData = async () => {
       try {
-        const res = await api.get("/usuarios");
+        setLoading(true);
+
+        const res = await api.get("/usuarios", {
+          params: {
+            page: paginaAtual - 1,
+            size: 5,
+            search: busca || null,
+            role: filtroRole === "ALL" ? null : filtroRole,
+            sort: getSortParam()
+          }
+        });
 
         if (mounted) {
-          setUsuarios(res.data);
+          setUsuarios(res.data.content);
+          setTotalPaginas(res.data.totalPages);
         }
       } catch (error) {
         console.error(error);
       } finally {
-        if (mounted) {
-          setLoading(false);
-        }
+        if (mounted) setLoading(false);
       }
     };
 
@@ -67,17 +88,8 @@ export default function Usuarios() {
     return () => {
       mounted = false;
     };
-  }, []);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setBuscaDebounce(busca);
-    }, 300); // 300ms padrão profissional
-
-    return () => clearTimeout(timer);
-  }, [busca]);
-
-  
+  }, [paginaAtual, busca, filtroRole, getSortParam]);
+ 
   // 🔥 SALVAR
   const salvar = async () => {
     try {
@@ -118,17 +130,6 @@ export default function Usuarios() {
     }
   };
 
-  const usuariosFiltrados = usuarios.filter((u) => {
-    const matchBusca = u.email
-      .toLowerCase()
-      .includes(buscaDebounce.toLowerCase())
-
-    const matchRole =
-      filtroRole === "ALL" || u.role === filtroRole;
-
-    return matchBusca && matchRole;
-  });
-
   // 🔥 LOADING
   if (loading) {
     return (
@@ -138,55 +139,8 @@ export default function Usuarios() {
         <div className="h-20 bg-gray-300 rounded"></div>
       </div>
     );
-  }
-
-  const highlight = (text, search) => {
-    if (!search) return text;
-
-    const escapeRegex = (text) =>
-      text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    const regex = new RegExp(`(${escapeRegex(search)})`, "gi");
-    const parts = text.split(regex);
-
-    return parts.map((part, i) =>
-      part.toLowerCase() === search.toLowerCase() ? (
-        <mark key={i} className="bg-yellow-300 text-black px-1 rounded transition-all">
-          {part}
-        </mark>
-      ) : (
-        part
-      )
-    );
-  };
-
-  const usuariosOrdenados = [...usuariosFiltrados].sort((a, b) => {
-    switch (ordenacao) {
-      case "email_asc":
-        return a.email.localeCompare(b.email);
-
-      case "email_desc":
-        return b.email.localeCompare(a.email);
-
-      case "role":
-        return a.role.localeCompare(b.role);
-
-      default:
-        return 0;
-    }
-  });
-
-  const indexFinal = paginaAtual * itensPorPagina;
-  const indexInicial = indexFinal - itensPorPagina;
-
-  const usuariosPaginados = usuariosOrdenados.slice(
-    indexInicial,
-    indexFinal
-  );
-
-  const totalPaginas = Math.ceil(
-    usuariosFiltrados.length / itensPorPagina
-  );
-
+  } 
+   
   return (
     <div className="space-y-6">
 
@@ -254,25 +208,36 @@ export default function Usuarios() {
       )}
 
       {/* EMPTY STATE */}
-      {!usuarios || usuariosFiltrados.length === 0 ? (
+      {!usuarios || usuarios.length === 0 ? (
         <div className="text-center py-10 text-gray-500">
           Nenhum usuário encontrado 😢
         </div>
       ) : (
-        <div className="grid gap-4">
-         {usuariosPaginados.map((u) => (
+        <div className="bg-white dark:bg-slate-800 rounded-xl shadow overflow-hidden">
+
+          {/* HEADER */}
+          <div className="hidden md:grid grid-cols-3 px-6 py-3 text-sm font-semibold 
+            text-gray-500 dark:text-gray-400 border-b dark:border-slate-700">
+            <span>Email</span>
+            <span>Role</span>
+            <span className="text-right">Ações</span>
+          </div>
+
+          {/* LINHAS */} 
+          {usuarios.map((u) => (
             <div
               key={u.id}
-              className="bg-white dark:bg-slate-800 p-4 rounded-xl shadow 
-              flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3
-              border border-gray-200 dark:border-slate-700
-              hover:shadow-lg hover:scale-[1.01] transition-all"
+              className="grid grid-cols-1 md:grid-cols-3 px-6 py-4 items-center 
+              border-b last:border-none dark:border-slate-700
+               hover:bg-gray-50 dark:hover:bg-slate-700 transition"
             >
-              <div>
-                <p className="font-medium text-gray-800 dark:text-white">                  
-                    {highlight(u.email, buscaDebounce)}    
-                </p>
+              {/* EMAIL */}
+              <div className="font-medium text-gray-800 dark:text-white">
+                {u.email}
+              </div>
 
+              {/* ROLE */}
+              <div className="mt-2 md:mt-0">
                 <span
                   className={`text-xs px-2 py-1 rounded-full font-medium ${
                     u.role === "ADMIN"
@@ -283,8 +248,9 @@ export default function Usuarios() {
                   {u.role}
                 </span>
               </div>
-
-              <div className="flex gap-3 justify-end sm:justify-normal">
+              
+              {/* AÇÕES */}
+              <div className="flex gap-3 justify-end sm:justify-end">
                 <button
                   onClick={() => editar(u)}
                   className="text-blue-600 hover:text-blue-800 text-sm"
