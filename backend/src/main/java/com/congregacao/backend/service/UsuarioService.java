@@ -1,5 +1,9 @@
 package com.congregacao.backend.service;
 
+import com.congregacao.backend.dto.UsuarioDTO;
+import com.congregacao.backend.dto.UsuarioCreateDTO;
+import com.congregacao.backend.exception.ResourceNotFoundException;
+import com.congregacao.backend.model.Role;
 import com.congregacao.backend.model.Usuario;
 import com.congregacao.backend.repository.UsuarioRepository;
 import com.congregacao.backend.specification.UsuarioSpecification;
@@ -23,36 +27,58 @@ public class UsuarioService {
     }
 
     // 🔥 LISTAR
-    public Page<Usuario> listar(String search, String role, Pageable pageable) {
+    public Page<UsuarioDTO> listar(String search, String role, Pageable pageable) {
 
-    	Specification<Usuario> spec = Specification.allOf(
-    	        UsuarioSpecification.emailContains(search),
-    	        UsuarioSpecification.roleEquals(role)
-    	);
+        Specification<Usuario> spec = Specification.allOf(
+                UsuarioSpecification.emailContains(search),
+                UsuarioSpecification.roleEquals(role)
+        );
 
-        return repository.findAll(spec, pageable);
+        return repository.findAll(spec, pageable)
+                .map(u -> new UsuarioDTO(
+                        u.getId(),
+                        u.getEmail(),
+                        u.getRole().name()
+                ));
     }
 
     // 🔥 CRIAR
-    public Usuario criar(Usuario usuario) {
-        usuario.setSenha(encoder.encode(usuario.getSenha())); // 🔐 CRIPTOGRAFIA
-        return repository.save(usuario);
+    public UsuarioDTO criar(UsuarioCreateDTO dto) {
+
+        Usuario usuario = new Usuario();
+        usuario.setEmail(dto.getEmail());
+        usuario.setSenha(encoder.encode(dto.getSenha()));
+        usuario.setRole(Role.valueOf(dto.getRole()));
+
+        Usuario salvo = repository.save(usuario);
+
+        return new UsuarioDTO(
+                salvo.getId(),
+                salvo.getEmail(),
+                salvo.getRole().name()
+        );
     }
 
     // 🔥 ATUALIZAR
-    public Usuario atualizar(Long id, Usuario usuario) {
+    public UsuarioDTO atualizar(Long id, UsuarioCreateDTO dto) {
+
         Usuario existente = repository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
 
-        existente.setEmail(usuario.getEmail());
-        existente.setRole(usuario.getRole());
+        existente.setEmail(dto.getEmail());
+        existente.setRole(Role.valueOf(dto.getRole()));
 
-        // 🔥 Só atualiza senha se vier preenchida
-        if (usuario.getSenha() != null && !usuario.getSenha().isBlank()) {
-            existente.setSenha(encoder.encode(usuario.getSenha()));
+        if (dto.getSenha() != null && !dto.getSenha().isBlank()) {
+            existente.setSenha(encoder.encode(dto.getSenha()));
         }
 
-        return repository.save(existente);
+        Usuario atualizado = repository.save(existente);
+
+        return new UsuarioDTO(
+                atualizado.getId(),
+                atualizado.getEmail(),
+                atualizado.getRole().name()
+        );
     }
 
     // 🔥 DELETAR

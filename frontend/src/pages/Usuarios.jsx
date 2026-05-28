@@ -3,18 +3,20 @@ import toast from "react-hot-toast";
 import { api } from "../services/api";
 
 export default function Usuarios() {
-
   const [usuarios, setUsuarios] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
+
   const [busca, setBusca] = useState("");
   const [filtroRole, setFiltroRole] = useState("ALL");
   const [totalPaginas, setTotalPaginas] = useState(0);
   const [paginaAtual, setPaginaAtual] = useState(1);
   const [ordenacao, setOrdenacao] = useState("email_asc");
-  
+
+  const [errors, setErrors] = useState({});  
 
   const [form, setForm] = useState({
     email: "",
@@ -22,25 +24,7 @@ export default function Usuarios() {
     role: "USER"
   });
 
-  // 🔥 CARREGAR USUÁRIOS
-  const carregarUsuarios = async () => {
-    setLoading(true);
-
-    try {
-      const res = await api.get("/usuarios");
-      console.log("USUARIOS:", res.data);
-      setUsuarios(res.data);
-    } catch (error) {
-      if (error.response) {
-        setError(`Erro ${error.response.status}: ${error.response.data}`);
-      } else {
-        setError("Erro de conexão com o servidor");
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  // 🔥 SORT
   const getSortParam = useCallback(() => {
     switch (ordenacao) {
       case "email_asc":
@@ -53,9 +37,9 @@ export default function Usuarios() {
         return "email,asc";
     }
   }, [ordenacao]);
-
-  // 🔥 USE EFFECT CORRETO (SEM DUPLICAÇÃO)
- useEffect(() => {
+  
+   // 🔥 FETCH ÚNICO (SEM DUPLICAÇÃO)
+  useEffect(() => {
     let mounted = true;
 
     const fetchData = async () => {
@@ -68,23 +52,25 @@ export default function Usuarios() {
             size: 5,
             search: busca || null,
             role: filtroRole === "ALL" ? null : filtroRole,
-            sort: getSortParam()
-          }
+            sort: getSortParam(),
+          },
         });
 
-        if (mounted) {
-          if (res.data.content) {
-            setUsuarios(res.data.content);
-            setTotalPaginas(res.data.totalPages);
-          } else {
-            setUsuarios(res.data);
-            setTotalPaginas(1);
-          }
+        if (!mounted) return;
+
+        if (res.data.content) {
+          setUsuarios(res.data.content);
+          setTotalPaginas(res.data.totalPages);
+        } else {
+          setUsuarios(res.data);
+          setTotalPaginas(1);
         }
-      } catch (error) {
-        console.error(error);
-        if (error.response) {
-          setError(`Erro ${error.response.status}`);
+
+      } catch (err) {
+        console.error(err);
+
+        if (err.response) {
+          setError(err.response.data?.message || "Erro no servidor");
         } else {
           setError("Erro de conexão");
         }
@@ -95,14 +81,15 @@ export default function Usuarios() {
 
     fetchData();
 
-    return () => {
-      mounted = false;
-    };
+    return () => (mounted = false);
   }, [paginaAtual, busca, filtroRole, getSortParam]);
- 
+
+
   // 🔥 SALVAR
   const salvar = async () => {
     try {
+      setErrors({});
+
       if (editingId) {
         await api.put(`/usuarios/${editingId}`, form);
         toast.success("Usuário atualizado!");
@@ -114,11 +101,16 @@ export default function Usuarios() {
       setModalOpen(false);
       setForm({ email: "", senha: "", role: "USER" });
       setEditingId(null);
-      carregarUsuarios();
+      setPaginaAtual(1);
 
     } catch (err) {
       console.error(err);
-      toast.error("Erro ao salvar usuário!");
+
+      if (err.response?.data?.errors) {
+        setErrors(err.response.data.errors);
+      } else {
+        toast.error("Erro ao salvar usuário");
+      }
     }
   };
 
@@ -126,6 +118,7 @@ export default function Usuarios() {
   const editar = (u) => {
     setForm({ email: u.email, senha: "", role: u.role });
     setEditingId(u.id);
+    setErrors({});
     setModalOpen(true);
   };
 
@@ -134,7 +127,7 @@ export default function Usuarios() {
     try {
       await api.delete(`/usuarios/${id}`);
       toast.success("Usuário removido!");
-      carregarUsuarios();
+      setPaginaAtual(1);
     } catch {
       toast.error("Erro ao excluir");
     }
@@ -159,17 +152,16 @@ export default function Usuarios() {
         <h1 className="text-2xl font-bold text-gray-800 dark:text-white">
           Usuários
         </h1>
-        <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+        <div className="flex gap-2 flex-wrap">
           {/* BUSCA */}
           <input
-            type="text"
             placeholder="Buscar por email..."
             value={busca}
             onChange={(e) => {
               setBusca(e.target.value);
               setPaginaAtual(1);
             }}
-            className="w-full sm:flex-1 p-2 border rounded dark:bg-slate-700 dark:text-white"
+            className="p-2 border rounded"
           />
 
           {/* FILTRO */}
@@ -179,10 +171,12 @@ export default function Usuarios() {
               setFiltroRole(e.target.value);
               setPaginaAtual(1);
             }}
-            className="p-2 border rounded dark:bg-slate-700 dark:text-white"
+             className="p-2 border rounded"
           >
             <option value="ALL">Todos</option>
             <option value="ADMIN">Admins</option>
+            <option value="SERVO_TERRITORIO">Servo de Território</option>
+            <option value="SERVO_PUBLICACAO">Servo de Publicação</option>
             <option value="USER">Usuários</option>
           </select>
           <select
@@ -205,7 +199,7 @@ export default function Usuarios() {
             setEditingId(null);
             setForm({ email: "", senha: "", role: "USER" });
           }}
-          className="w-full sm:w-auto bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition"
+          className="bg-blue-600 text-white px-4 py-2 rounded"
         >
           + Novo usuário
         </button>
@@ -218,145 +212,103 @@ export default function Usuarios() {
       )}
 
       {/* EMPTY STATE */}
-      {!usuarios || usuarios.length === 0 ? (
-        <div className="text-center py-10 text-gray-500">
-          Nenhum usuário encontrado 😢
-        </div>
-      ) : (
-        <div className="bg-white dark:bg-slate-800 rounded-xl shadow overflow-hidden">
+      <div className="bg-white dark:bg-slate-800 rounded-xl shadow">
+        {usuarios.map((u) => (
+          <div key={u.id} className="flex justify-between p-4 border-b">
+            <span className="dark:text-white">{u.email}</span>
+            <span className="dark:text-white">{u.role}</span>
 
-          {/* HEADER */}
-          <div className="hidden md:grid grid-cols-3 px-6 py-3 text-sm font-semibold 
-            text-gray-500 dark:text-gray-400 border-b dark:border-slate-700">
-            <span>Email</span>
-            <span>Role</span>
-            <span className="text-right">Ações</span>
-          </div>
-
-          {/* LINHAS */} 
-          {usuarios.map((u) => (
-            <div
-              key={u.id}
-              className="grid grid-cols-1 md:grid-cols-3 px-6 py-4 items-center 
-              border-b last:border-none dark:border-slate-700
-               hover:bg-gray-50 dark:hover:bg-slate-700 transition"
-            >
-              {/* EMAIL */}
-              <div className="font-medium text-gray-800 dark:text-white">
-                {u.email}
-              </div>
-
-              {/* ROLE */}
-              <div className="mt-2 md:mt-0">
-                <span
-                  className={`text-xs px-2 py-1 rounded-full font-medium ${
-                    u.role === "ADMIN"
-                      ? "bg-blue-100 text-blue-600"
-                      : "bg-gray-100 text-gray-600"
-                  }`}
-                >
-                  {u.role}
-                </span>
-              </div>
-              
-              {/* AÇÕES */}
-              <div className="flex gap-3 justify-end sm:justify-end">
-                <button
-                  onClick={() => editar(u)}
-                  className="text-blue-600 hover:text-blue-800 text-sm"
-                >
-                  Editar
-                </button>
-
-                <button
-                  onClick={() => excluir(u.id)}
-                  className="text-red-600 hover:text-red-800 text-sm"
-                >
-                  Excluir
-                </button>
-              </div>
+            <div className="flex gap-2">
+              <button onClick={() => editar(u)} className="dark:text-white">Editar</button>
+              <button onClick={() => excluir(u.id)} className="dark:text-white">Excluir</button>
             </div>
-          ))}
-        </div>
-      )}
+          </div>
+        ))}
+      </div>
+      
+      {/* PAGINAÇÃO */}
+      <div className="flex justify-between">
+        <button
+          disabled={paginaAtual === 1}
+          onClick={() => setPaginaAtual(paginaAtual - 1)}
+          className="dark:text-white"
+        >
+          ← ATRÁS
+        </button>
 
-      <div className="flex flex-col sm:flex-row justify-between items-center gap-3 mt-4">
+        <span className="dark:text-white">{paginaAtual} / {totalPaginas}</span>
 
-        <span className="text-sm text-gray-500">
-          Página {paginaAtual} de {totalPaginas}
-        </span>
-
-        <div className="flex gap-2">
-
-          <button
-            disabled={paginaAtual === 1}
-            onClick={() => setPaginaAtual(paginaAtual - 1)}
-            className="px-3 py-1 border rounded disabled:opacity-50"
-          >
-            ← Anterior
-          </button>
-
-          <button
-            disabled={paginaAtual === totalPaginas}
-            onClick={() => setPaginaAtual(paginaAtual + 1)}
-            className="px-3 py-1 border rounded disabled:opacity-50"
-          >
-            Próxima →
-          </button>
-
-        </div>
+        <button
+          disabled={paginaAtual === totalPaginas}
+          onClick={() => setPaginaAtual(paginaAtual + 1)}
+          className="dark:text-white"
+        >
+         FRENTE → 
+        </button>
       </div>
 
       {/* MODAL */}
       {modalOpen && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center">
-         <div className="bg-white dark:bg-slate-800 p-6 rounded-xl w-[90%] sm:w-[400px] max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/40 flex justify-center items-center">
 
-            <h2 className="text-lg font-bold mb-4 text-gray-800 dark:text-white">
-              {editingId ? "Editar Usuário" : "Novo Usuário"}
+          <div className="bg-white p-6 rounded w-[400px]">
+
+            <h2 className="mb-4">
+              {editingId ? "Editar" : "Novo"}
             </h2>
 
+            {/* EMAIL */}
             <input
               placeholder="Email"
               value={form.email}
-              onChange={(e) =>
-                setForm({ ...form, email: e.target.value })
-              }
-              className="w-full mb-3 p-2 border rounded"
+              onChange={(e) => {
+                setForm({ ...form, email: e.target.value });
+                setErrors({ ...errors, email: null });
+              }}
+              className={`w-full mb-1 p-2 border rounded ${errors.email ? "border-red-500" : ""}`}
             />
+            {errors.email && (
+              <p className="text-red-500 text-sm">{errors.email}</p>
+            )}
 
+            {/* SENHA */}
             <input
               type="password"
               placeholder="Senha"
               value={form.senha}
-              onChange={(e) =>
-                setForm({ ...form, senha: e.target.value })
-              }
-              className="w-full mb-3 p-2 border rounded"
+              onChange={(e) => {
+                setForm({ ...form, senha: e.target.value });
+                setErrors({ ...errors, senha: null });
+              }}
+              className={`w-full mb-1 p-2 border rounded ${errors.senha ? "border-red-500" : ""}`}
             />
+            {errors.senha && (
+              <p className="text-red-500 text-sm">{errors.senha}</p>
+            )}
 
+            {/* ROLE */}
             <select
               value={form.role}
-              onChange={(e) =>
-                setForm({ ...form, role: e.target.value })
-              }
-              className="w-full mb-4 p-2 border rounded"
+              onChange={(e) => {
+                setForm({ ...form, role: e.target.value });
+                setErrors({ ...errors, role: null });
+              }}
+              className={`w-full mb-2 p-2 border rounded ${errors.role ? "border-red-500" : ""}`}
             >
               <option value="USER">USER</option>
               <option value="ADMIN">ADMIN</option>
             </select>
 
-            <div className="flex justify-end gap-2">
-              <button
-                onClick={() => setModalOpen(false)}
-                className="text-gray-500"
-              >
-                Cancelar
-              </button>
+            {errors.role && (
+              <p className="text-red-500 text-sm">{errors.role}</p>
+            )}
+
+            <div className="flex justify-end gap-2 mt-4">
+              <button onClick={() => setModalOpen(false)}>Cancelar</button>
 
               <button
                 onClick={salvar}
-                className="bg-blue-600 text-white px-4 py-1 rounded hover:bg-blue-700"
+                className="bg-blue-600 text-white px-4 py-1 rounded"
               >
                 Salvar
               </button>
@@ -369,3 +321,4 @@ export default function Usuarios() {
     </div>
   );
 }
+      

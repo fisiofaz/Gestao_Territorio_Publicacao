@@ -1,10 +1,13 @@
 package com.congregacao.backend.controller;
 
-import com.congregacao.backend.model.Usuario;
+import com.congregacao.backend.dto.UsuarioDTO;
+import com.congregacao.backend.dto.UsuarioCreateDTO;
 import com.congregacao.backend.service.UsuarioService;
+
+import jakarta.validation.Valid;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.*;
@@ -23,26 +26,26 @@ public class UsuarioController {
     // 🔥 LISTAR
 	@GetMapping
 	@PreAuthorize("hasRole('ADMIN')")
-	public Page<Usuario> listar(
+	public Page<UsuarioDTO> listar(
 	        @RequestParam(required = false) String search,
 	        @RequestParam(required = false) String role,
 	        Pageable pageable
 	) {
-	    return service.listar(search, role, pageable);
+		return service.listar(search, role, pageable);
 	}
 
     // 🔥 CRIAR
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
-    public Usuario criar(@RequestBody Usuario usuario) {
-        return service.criar(usuario);
+    public UsuarioDTO criar( @RequestBody @Valid UsuarioCreateDTO dto) {
+        return service.criar(dto);
     }
 
     // 🔥 ATUALIZAR
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public Usuario atualizar(@PathVariable Long id, @RequestBody Usuario usuario) {
-        return service.atualizar(id, usuario);
+    public UsuarioDTO atualizar(@PathVariable Long id, @RequestBody @Valid UsuarioCreateDTO dto) {
+        return service.atualizar(id, dto);
     }
 
     // 🔥 DELETAR
