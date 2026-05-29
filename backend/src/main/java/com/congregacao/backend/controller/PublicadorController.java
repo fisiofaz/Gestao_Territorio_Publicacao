@@ -1,43 +1,72 @@
 package com.congregacao.backend.controller;
 
-import org.springframework.security.access.prepost.PreAuthorize;
+import com.congregacao.backend.dto.PublicadorCreateDTO;
+import com.congregacao.backend.dto.PublicadorDTO;
 import com.congregacao.backend.model.Publicador;
+import com.congregacao.backend.repository.PublicadorRepository;
 import com.congregacao.backend.service.PublicadorService;
-import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
+import jakarta.validation.Valid;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/publicadores")
-@CrossOrigin(origins = "*") // permite React acessar
+@CrossOrigin
 public class PublicadorController {
 
     private final PublicadorService service;
+    private final PublicadorRepository repository;
 
-    public PublicadorController(PublicadorService service) {
+    public PublicadorController(PublicadorService service, PublicadorRepository repository) {
         this.service = service;
+        this.repository = repository;
+    }
+    
+    // 🔥 LISTAR
+    public Page<PublicadorDTO> listar(String busca, Pageable pageable) {
+
+        Page<Publicador> page;
+
+        if (busca != null && !busca.isBlank()) {
+            page = repository.findByNomeContainingIgnoreCase(busca, pageable);
+        } else {
+            page = repository.findAll(pageable);
+        }
+
+        return page.map(p -> new PublicadorDTO(
+                p.getId(),
+                p.getNome(),
+                p.getTelefone()
+        ));
+    }
+    
+    // 🔥 BUSCAR POR ID
+    @GetMapping("/{id}")
+    public PublicadorDTO buscar(@PathVariable Long id) {
+        return service.buscarPorId(id);
     }
 
-    @GetMapping
-    public List<Publicador> listar() {
-        return service.listar();
-    }
-
-    @PreAuthorize("hasRole('ADMIN')")
+    // 🔥 CRIAR
     @PostMapping
-    public Publicador criar(@RequestBody Publicador publicador) {
-        return service.salvar(publicador);
+    public PublicadorDTO criar(@Valid @RequestBody PublicadorCreateDTO dto) {
+        return service.criar(dto);
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
+    // 🔥 ATUALIZAR
     @PutMapping("/{id}")
-    public Publicador atualizar(@PathVariable Long id, @RequestBody Publicador publicador) {
-        return service.atualizar(id, publicador);
+    public PublicadorDTO atualizar(
+            @PathVariable Long id,
+            @Valid @RequestBody PublicadorCreateDTO dto
+    ) {
+        return service.atualizar(id, dto);
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
+    // 🔥 DELETAR
     @DeleteMapping("/{id}")
-    public void excluir(@PathVariable Long id) {
-        service.excluir(id);
+    public void deletar(@PathVariable Long id) {
+        service.deletar(id);
     }
 }

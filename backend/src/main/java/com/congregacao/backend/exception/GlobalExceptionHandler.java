@@ -9,6 +9,7 @@ import org.springframework.validation.FieldError;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -34,9 +35,11 @@ public class GlobalExceptionHandler {
     // 🔥 ERRO GENÉRICO
     @ExceptionHandler(Exception.class)
     public ResponseEntity<?> handleGeneric(Exception ex) {
-        ex.printStackTrace(); // log
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(buildResponse("Erro interno do servidor"));
+                .body(Map.of(
+                        "error", "INTERNAL_ERROR",
+                        "message", ex.getMessage()
+                ));
     }
 
     // 🔥 PADRÃO DE RESPOSTA
@@ -61,4 +64,33 @@ public class GlobalExceptionHandler {
                 "errors", errors
         ));
     }
+    
+    // 🔥 ERRO CUSTOM
+    @ExceptionHandler(PublicadorNotFoundException.class)
+    public ResponseEntity<?> handleNotFound(PublicadorNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(Map.of(
+                        "error", "NOT_FOUND",
+                        "message", ex.getMessage()
+                ));
+    }
+    
+    // 🔥 ERROS DE VALIDAÇÃO
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<?> handleValidation(MethodArgumentNotValidException ex) {
+
+        var errors = ex.getBindingResult()
+                .getFieldErrors()
+                .stream()
+                .collect(Collectors.toMap(
+                        field -> field.getField(),
+                        field -> field.getDefaultMessage()
+                ));
+
+        return ResponseEntity.badRequest().body(Map.of(
+                "error", "VALIDATION_ERROR",
+                "fields", errors
+        ));
+    }
+
 }

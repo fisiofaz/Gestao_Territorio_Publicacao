@@ -1,15 +1,20 @@
 package com.congregacao.backend.service;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
+import com.congregacao.backend.dto.PublicadorCreateDTO;
+import com.congregacao.backend.dto.PublicadorDTO;
+import com.congregacao.backend.exception.PublicadorNotFoundException;
 import com.congregacao.backend.model.Publicador;
 import com.congregacao.backend.repository.PublicadorRepository;
-
-import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.stereotype.Service;
 
+
 import java.util.List;
+import java.util.stream.Collectors;
 
 
-@EnableMethodSecurity
 @Service
 public class PublicadorService {
 
@@ -19,22 +24,73 @@ public class PublicadorService {
         this.repository = repository;
     }
 
-    public List<Publicador> listar() {
-        return repository.findAll();
+    // 🔥 LISTAR
+    public List<PublicadorDTO> listar(String busca, Pageable pageable) {
+    	
+    	Page<Publicador> page;
+
+        if (busca != null && !busca.isBlank()) {
+            page = repository.findByNomeContainingIgnoreCase(busca, pageable);
+        } else {
+            page = repository.findAll(pageable);
+        }
+    	
+    	return repository.findAll(pageable)
+                .stream()
+                .map(p -> new PublicadorDTO(
+                        p.getId(),
+                        p.getNome(),
+                        p.getTelefone()
+                ))
+                .collect(Collectors.toList());
     }
 
-    public Publicador salvar(Publicador publicador) {
-        return repository.save(publicador);
+    // 🔥 BUSCAR POR ID
+    public PublicadorDTO buscarPorId(Long id) {
+        Publicador p = repository.findById(id)
+        		.orElseThrow(() -> new PublicadorNotFoundException(id));
+
+        return new PublicadorDTO(
+                p.getId(),
+                p.getNome(),
+                p.getTelefone()
+        );
     }
 
-    public void excluir(Long id) {
+    // 🔥 CRIAR
+    public PublicadorDTO criar(PublicadorCreateDTO dto) {
+        Publicador p = new Publicador();
+        p.setNome(dto.getNome());
+        p.setTelefone(dto.getTelefone());
+
+        p = repository.save(p);
+
+        return new PublicadorDTO(
+                p.getId(),
+                p.getNome(),
+                p.getTelefone()
+        );
+    }
+
+    // 🔥 ATUALIZAR
+    public PublicadorDTO atualizar(Long id, PublicadorCreateDTO dto) {
+        Publicador p = repository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Publicador não encontrado"));
+
+        p.setNome(dto.getNome());
+        p.setTelefone(dto.getTelefone());
+
+        p = repository.save(p);
+
+        return new PublicadorDTO(
+                p.getId(),
+                p.getNome(),
+                p.getTelefone()
+        );
+    }
+
+    // 🔥 DELETAR
+    public void deletar(Long id) {
         repository.deleteById(id);
-    }
-
-    public Publicador atualizar(Long id, Publicador dados) {
-        Publicador p = repository.findById(id).orElseThrow();
-        p.setNome(dados.getNome());
-        p.setTelefone(dados.getTelefone());
-        return repository.save(p);
     }
 }
