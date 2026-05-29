@@ -226,6 +226,12 @@ export default function Territorios() {
                   }`}
                 >
                   {t.status}
+                  
+                  {t.atrasado && (
+                    <span className="text-red-500 text-xs font-semibold">
+                      ⚠ Atrasado
+                    </span>
+                  )}
                 </span>
               </div>
 

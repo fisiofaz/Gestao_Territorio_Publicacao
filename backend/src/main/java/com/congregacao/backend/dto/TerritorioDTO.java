@@ -23,4 +23,5 @@ public class TerritorioDTO {
     private String responsavel;
     private LocalDate dataRetirada;
     private LocalDate dataDevolucao;
+    private boolean atrasado;
 }

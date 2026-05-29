@@ -3,6 +3,8 @@ package com.congregacao.backend.service;
 import com.congregacao.backend.dto.TerritorioDTO;
 import com.congregacao.backend.dto.TerritorioCreateDTO;
 import com.congregacao.backend.exception.TerritorioNotFoundException;
+import com.congregacao.backend.exception.TerritorioEmUsoException;
+import com.congregacao.backend.exception.TerritorioDisponivelException;
 import com.congregacao.backend.model.Publicador;
 import com.congregacao.backend.model.StatusTerritorio;
 import com.congregacao.backend.model.Territorio;
@@ -14,10 +16,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
-
-
 
 @Service
 public class TerritorioService {
@@ -42,7 +43,7 @@ public class TerritorioService {
         return repository.findAll(spec, pageable)
                 .map(this::toDTO);
     }
-    
+
     // 🔥 BUSCAR POR ID
     public TerritorioDTO buscarPorId(Long id) {
         Territorio t = repository.findById(id)
@@ -50,7 +51,7 @@ public class TerritorioService {
 
         return toDTO(t);
     }
-    
+
     // 🔥 CRIAR
     public TerritorioDTO criar(TerritorioCreateDTO dto) {
         Territorio t = new Territorio();
@@ -78,20 +79,29 @@ public class TerritorioService {
 
         return toDTO(t);
     }
-    
-    // 🔥 DELETAR
+
+    // 🔥 DELETAR (com regra)
     public void deletar(Long id) {
-        repository.deleteById(id);
+        Territorio t = repository.findById(id)
+                .orElseThrow(() -> new TerritorioNotFoundException(id));
+
+        if (t.getStatus() == StatusTerritorio.EM_USO) {
+            throw new RuntimeException("Não é possível deletar território em uso");
+        }
+
+        repository.delete(t);
     }
 
     // 🔥 RETIRAR TERRITÓRIO
-    public void retirar(Long territorioId, Long publicadorId) {
+    @Transactional
+    public TerritorioDTO retirar(Long territorioId, Long publicadorId) {
 
         Territorio t = repository.findById(territorioId)
                 .orElseThrow(() -> new TerritorioNotFoundException(territorioId));
 
+        // 🚨 REGRA: já está em uso
         if (t.getStatus() == StatusTerritorio.EM_USO) {
-            throw new RuntimeException("Território já está em uso");
+            throw new TerritorioEmUsoException();
         }
 
         Publicador p = publicadorRepository.findById(publicadorId)
@@ -102,37 +112,48 @@ public class TerritorioService {
         t.setDataDevolucao(null);
         t.setStatus(StatusTerritorio.EM_USO);
 
-        repository.save(t);
+        return toDTO(repository.save(t));
     }
 
     // 🔥 DEVOLVER TERRITÓRIO
-    public void devolver(Long territorioId) {
+    @Transactional
+    public TerritorioDTO devolver(Long territorioId) {
 
         Territorio t = repository.findById(territorioId)
                 .orElseThrow(() -> new TerritorioNotFoundException(territorioId));
 
         if (t.getStatus() == StatusTerritorio.DISPONIVEL) {
-            throw new RuntimeException("Território já está disponível");
+            throw new TerritorioDisponivelException();
         }
 
         t.setResponsavel(null);
         t.setDataDevolucao(LocalDate.now());
         t.setStatus(StatusTerritorio.DISPONIVEL);
 
-        repository.save(t);
+        return toDTO(repository.save(t));
     }
-    
-    // 🔥 MAPPER (ENTITY → DTO)
+
+    // 🔥 MAPPER ENTITY → DTO
     private TerritorioDTO toDTO(Territorio t) {
+
+        String responsavel = t.getResponsavel() != null
+                ? t.getResponsavel().getNome()
+                : null;
+
+        boolean atrasado = t.getStatus() == StatusTerritorio.EM_USO &&
+                t.getDataRetirada() != null &&
+                t.getDataRetirada().isBefore(LocalDate.now().minusDays(30));
+
         return new TerritorioDTO(
                 t.getId(),
                 t.getNumero(),
                 t.getDescricao(),
                 t.getMapaUrl(),
                 t.getStatus(),
-                t.getResponsavel() != null ? t.getResponsavel().getNome() : null,
+                responsavel,
                 t.getDataRetirada(),
-                t.getDataDevolucao()
+                t.getDataDevolucao(),
+                atrasado
         );
     }
 }
