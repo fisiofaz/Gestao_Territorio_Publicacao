@@ -2,15 +2,9 @@ package com.congregacao.backend.model;
 
 import java.time.LocalDate;
 
+import java.time.LocalDate;
 
-
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.ManyToOne;
+import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -19,22 +13,31 @@ import lombok.Setter;
 @Getter
 @Setter
 @Entity
+@Table(name = "territorios")
 public class Territorio {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(nullable = false, unique = true)
     private String numero;
+    
+    @Column(length = 500)
     private String descricao;
+    
+    @Column(name = "mapa_url")
     private String mapaUrl;
 
     @Enumerated(EnumType.STRING)
-    private StatusTerritorio status;
+    @Column(nullable = false)
+    private StatusTerritorio status = StatusTerritorio.DISPONIVEL;
 
     @ManyToOne
+    @JoinColumn(name = "publicador_id")
     private Publicador responsavel;
 
     private LocalDate dataRetirada;
+    
     private LocalDate dataDevolucao;
 }

@@ -1,17 +1,23 @@
 package com.congregacao.backend.service;
 
-import java.time.LocalDate;
-import java.util.List;
-
-import org.springframework.stereotype.Service;
-
+import com.congregacao.backend.dto.TerritorioDTO;
+import com.congregacao.backend.dto.TerritorioCreateDTO;
+import com.congregacao.backend.exception.TerritorioNotFoundException;
 import com.congregacao.backend.model.Publicador;
 import com.congregacao.backend.model.StatusTerritorio;
 import com.congregacao.backend.model.Territorio;
 import com.congregacao.backend.repository.PublicadorRepository;
 import com.congregacao.backend.repository.TerritorioRepository;
-import org.springframework.data.domain.*;
+import com.congregacao.backend.specification.TerritorioSpecification;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.stereotype.Service;
+
+import java.time.LocalDate;
+
+
 
 @Service
 public class TerritorioService {
@@ -25,19 +31,64 @@ public class TerritorioService {
         this.publicadorRepository = publicadorRepository;
     }
 
-    public List<Territorio> listar() {
-        return repository.findAll();
-    }
+    // 🔥 LISTAR
+    public Page<TerritorioDTO> listar(String busca, String status, Pageable pageable) {
 
-    public Territorio criar(Territorio t) {
+        Specification<Territorio> spec = Specification.allOf(
+                TerritorioSpecification.numeroContains(busca),
+                TerritorioSpecification.statusEquals(status)
+        );
+
+        return repository.findAll(spec, pageable)
+                .map(this::toDTO);
+    }
+    
+    // 🔥 BUSCAR POR ID
+    public TerritorioDTO buscarPorId(Long id) {
+        Territorio t = repository.findById(id)
+                .orElseThrow(() -> new TerritorioNotFoundException(id));
+
+        return toDTO(t);
+    }
+    
+    // 🔥 CRIAR
+    public TerritorioDTO criar(TerritorioCreateDTO dto) {
+        Territorio t = new Territorio();
+
+        t.setNumero(dto.getNumero());
+        t.setDescricao(dto.getDescricao());
+        t.setMapaUrl(dto.getMapaUrl());
         t.setStatus(StatusTerritorio.DISPONIVEL);
-        return repository.save(t);
+
+        t = repository.save(t);
+
+        return toDTO(t);
     }
 
-    // 🔥 RETIRAR
-    public Territorio retirar(Long territorioId, Long publicadorId) {
+    // 🔥 ATUALIZAR
+    public TerritorioDTO atualizar(Long id, TerritorioCreateDTO dto) {
+        Territorio t = repository.findById(id)
+                .orElseThrow(() -> new TerritorioNotFoundException(id));
+
+        t.setNumero(dto.getNumero());
+        t.setDescricao(dto.getDescricao());
+        t.setMapaUrl(dto.getMapaUrl());
+
+        t = repository.save(t);
+
+        return toDTO(t);
+    }
+    
+    // 🔥 DELETAR
+    public void deletar(Long id) {
+        repository.deleteById(id);
+    }
+
+    // 🔥 RETIRAR TERRITÓRIO
+    public void retirar(Long territorioId, Long publicadorId) {
+
         Territorio t = repository.findById(territorioId)
-                .orElseThrow(() -> new RuntimeException("Território não encontrado"));
+                .orElseThrow(() -> new TerritorioNotFoundException(territorioId));
 
         if (t.getStatus() == StatusTerritorio.EM_USO) {
             throw new RuntimeException("Território já está em uso");
@@ -47,65 +98,41 @@ public class TerritorioService {
                 .orElseThrow(() -> new RuntimeException("Publicador não encontrado"));
 
         t.setResponsavel(p);
-        t.setStatus(StatusTerritorio.EM_USO);
         t.setDataRetirada(LocalDate.now());
+        t.setDataDevolucao(null);
+        t.setStatus(StatusTerritorio.EM_USO);
 
-        return repository.save(t);
+        repository.save(t);
     }
 
-    // 🔥 DEVOLVER
-    public Territorio devolver(Long id) {
-        Territorio t = repository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Território não encontrado"));
+    // 🔥 DEVOLVER TERRITÓRIO
+    public void devolver(Long territorioId) {
 
-        t.setResponsavel(null);
-        t.setStatus(StatusTerritorio.DISPONIVEL);
-        t.setDataDevolucao(LocalDate.now());
+        Territorio t = repository.findById(territorioId)
+                .orElseThrow(() -> new TerritorioNotFoundException(territorioId));
 
-        return repository.save(t);
-    }
-
-    public Page<Territorio> listar(
-        String busca,
-        String status,
-        int page,
-        int size,
-        String sort
-    ) {
-
-        Sort ordenacao = Sort.by("numero").ascending();
-
-        if ("desc".equalsIgnoreCase(sort)) {
-            ordenacao = Sort.by("numero").descending();
+        if (t.getStatus() == StatusTerritorio.DISPONIVEL) {
+            throw new RuntimeException("Território já está disponível");
         }
 
-        Pageable pageable = PageRequest.of(page, size, ordenacao);
+        t.setResponsavel(null);
+        t.setDataDevolucao(LocalDate.now());
+        t.setStatus(StatusTerritorio.DISPONIVEL);
 
-        Specification<Territorio> spec = (root, query, cb) -> {
-            var predicates = cb.conjunction();
-
-            // 🔍 BUSCA (numero ou descricao)
-            if (busca != null && !busca.isEmpty()) {
-                var like = "%" + busca.toLowerCase() + "%";
-
-                predicates = cb.and(predicates,
-                    cb.or(
-                        cb.like(cb.lower(root.get("numero")), like),
-                        cb.like(cb.lower(root.get("descricao")), like)
-                    )
-                );
-            }
-
-            // 🎯 FILTRO STATUS
-            if (status != null && !status.equals("ALL")) {
-                predicates = cb.and(predicates,
-                    cb.equal(root.get("status"), StatusTerritorio.valueOf(status))
-                );
-            }
-
-            return predicates;
-        };
-
-        return repository.findAll(spec, pageable);
+        repository.save(t);
+    }
+    
+    // 🔥 MAPPER (ENTITY → DTO)
+    private TerritorioDTO toDTO(Territorio t) {
+        return new TerritorioDTO(
+                t.getId(),
+                t.getNumero(),
+                t.getDescricao(),
+                t.getMapaUrl(),
+                t.getStatus(),
+                t.getResponsavel() != null ? t.getResponsavel().getNome() : null,
+                t.getDataRetirada(),
+                t.getDataDevolucao()
+        );
     }
 }

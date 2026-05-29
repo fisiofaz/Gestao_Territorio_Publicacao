@@ -1,19 +1,18 @@
 package com.congregacao.backend.controller;
 
-import org.springframework.data.domain.Page;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
-
-import com.congregacao.backend.model.Territorio;
+import com.congregacao.backend.dto.TerritorioCreateDTO;
+import com.congregacao.backend.dto.TerritorioDTO;
 import com.congregacao.backend.service.TerritorioService;
+
+import jakarta.validation.Valid;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/territorios")
+@CrossOrigin
 public class TerritorioController {
 
     private final TerritorioService service;
@@ -22,29 +21,55 @@ public class TerritorioController {
         this.service = service;
     }
 
-    @PostMapping
-    public Territorio criar(@RequestBody Territorio t) {
-        return service.criar(t);
-    }
-
-    @PostMapping("/{id}/retirar/{publicadorId}")
-    public Territorio retirar(@PathVariable Long id, @PathVariable Long publicadorId) {
-        return service.retirar(id, publicadorId);
-    }
-
-    @PostMapping("/{id}/devolver")
-    public Territorio devolver(@PathVariable Long id) {
-        return service.devolver(id);
-    }
-    
+    // 🔥 LISTAR
     @GetMapping
-    public Page<Territorio> listar(
-        @RequestParam(required = false) String busca,
-        @RequestParam(defaultValue = "ALL") String status,
-        @RequestParam(defaultValue = "0") int page,
-        @RequestParam(defaultValue = "10") int size,
-        @RequestParam(defaultValue = "asc") String sort
+    public Page<TerritorioDTO> listar(
+            @RequestParam(required = false) String busca,
+            @RequestParam(required = false) String status,
+            Pageable pageable
     ) {
-        return service.listar(busca, status, page, size, sort);
+        return service.listar(busca, status, pageable);
+    }
+
+    // 🔥 BUSCAR POR ID
+    @GetMapping("/{id}")
+    public TerritorioDTO buscar(@PathVariable Long id) {
+        return service.buscarPorId(id);
+    }
+
+    // 🔥 CRIAR
+    @PostMapping
+    public TerritorioDTO criar(@Valid @RequestBody TerritorioCreateDTO dto) {
+        return service.criar(dto);
+    }
+
+    // 🔥 ATUALIZAR
+    @PutMapping("/{id}")
+    public TerritorioDTO atualizar(
+            @PathVariable Long id,
+            @Valid @RequestBody TerritorioCreateDTO dto
+    ) {
+        return service.atualizar(id, dto);
+    }
+
+    // 🔥 DELETAR
+    @DeleteMapping("/{id}")
+    public void deletar(@PathVariable Long id) {
+        service.deletar(id);
+    }
+
+    // 🔥 RETIRAR
+    @PostMapping("/{id}/retirar/{publicadorId}")
+    public void retirar(
+            @PathVariable Long id,
+            @PathVariable Long publicadorId
+    ) {
+        service.retirar(id, publicadorId);
+    }
+
+    // 🔥 DEVOLVER
+    @PostMapping("/{id}/devolver")
+    public void devolver(@PathVariable Long id) {
+        service.devolver(id);
     }
 }

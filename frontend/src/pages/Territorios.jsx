@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { api } from "../services/api";
 import toast from "react-hot-toast";
 
@@ -20,196 +20,179 @@ export default function Territorios() {
   const [busca, setBusca] = useState("");
   const [status, setStatus] = useState("ALL");
 
-  // Criar Cartão
   const [form, setForm] = useState({
     numero: "",
     mapaUrl: ""
   });
 
-  // 🔥 CARREGAR DADOS
-  const fetchData = async (pageParam = page) => {
-    setLoading(true);
+  // 🔥 FETCH
+  const fetchData = useCallback(async () => {
     try {
+      setLoading(true);
+
       const res = await api.get("/territorios", {
         params: {
-          page: pageParam,
-          size: 5,
+          page,
+          size: 6,
           busca: busca || undefined,
-          status: status === "ALL" ? undefined : status,
-          sort: "asc"
+          status: status === "ALL" ? undefined : status
         }
       });
 
       setTerritorios(res.data.content);
       setTotalPages(res.data.totalPages);
+
     } catch (err) {
       console.error(err);
       toast.error("Erro ao carregar dados");
     } finally {
       setLoading(false);
     }
-  };
+  }, [page, busca, status]);
 
   useEffect(() => {
-    let mounted = true;
-
     const load = async () => {
-      if (mounted) {
-        await fetchData(0);
+      try {
+        setLoading(true);
+
+        const res = await api.get("/territorios", {
+          params: {
+            page,
+            size: 6,
+            busca: busca || undefined,
+            status: status === "ALL" ? undefined : status
+          }
+        });
+
+        setTerritorios(res.data.content);
+        setTotalPages(res.data.totalPages);
+
+      } catch (err) {
+        console.error(err);
+        toast.error("Erro ao carregar dados");
+      } finally {
+        setLoading(false);
       }
     };
 
     load();
-
-    return () => {
-      mounted = false;
-    };
-  }, []);
+  }, [page, busca, status]);
 
   useEffect(() => {
-    let mounted = true;
-
     const delay = setTimeout(() => {
-      if (mounted) {
-        setPage(0);
-        fetchData(0);
-      }
+      setPage(0);
     }, 300);
 
-    return () => {
-      mounted = false;
-      clearTimeout(delay);
-    };
+    return () => clearTimeout(delay);
   }, [busca, status]);
 
   useEffect(() => {
-    let mounted = true;
-
     api.get("/publicadores").then((res) => {
-      if (mounted) {
-        setPublicadores(res.data);
-      }
+      setPublicadores(res.data);
     });
-
-    return () => {
-      mounted = false;
-    };
   }, []);
 
-
-
-   // 🔥 SALVAR (CRIAR / EDITAR)
+  // 🔥 SALVAR
   const salvar = async () => {
     try {
       if (editingId) {
         await api.put(`/territorios/${editingId}`, form);
-        toast.success("Território atualizado!");
+        toast.success("Atualizado!");
       } else {
         await api.post("/territorios", form);
-        toast.success("Território criado!");
+        toast.success("Criado!");
       }
 
       setModalOpen(false);
       setEditingId(null);
       setForm({ numero: "", mapaUrl: "" });
-       fetchData();
-    } catch (err) {
-      console.error(err);
+      fetchData();
+
+    } catch {
       toast.error("Erro ao salvar");
     }
   };
 
-  // 🔥 EDITAR
-  const editar = (t) => {
-    setForm({
-      numero: t.numero,
-      mapaUrl: t.mapaUrl || ""
-    });
-    setEditingId(t.id);
-    setModalOpen(true);
-  };
-
-  // 🔥 EXCLUIR
   const excluir = async (id) => {
-    if (!confirm("Deseja excluir este território?")) return;
+    if (!confirm("Excluir território?")) return;
 
-    try {
-      await api.delete(`/territorios/${id}`);
-      toast.success("Excluído!");
-      fetchData();
-    } catch {
-      toast.error("Erro ao excluir");
-    }
+    await api.delete(`/territorios/${id}`);
+    toast.success("Excluído!");
+    fetchData();
   };
 
-  // 🔥 RETIRAR
   const retirar = async () => {
-    try {
-      await api.post(
-        `/territorios/${selectedTerritorio}/retirar/${publicadorId}`
-      );
-
-      toast.success("Retirado!");
-      setModalRetirar(false);
-      setPublicadorId("");
-      fetchData();
-    } catch {
-      toast.error("Erro ao retirar território");
+    if (!publicadorId) {
+      toast.error("Selecione um publicador");
+      return;
     }
+
+    await api.post(`/territorios/${selectedTerritorio}/retirar/${publicadorId}`);
+    toast.success("Retirado!");
+    setModalRetirar(false);
+    setPublicadorId("");
+    fetchData();
   };
 
-  // 🔥 DEVOLVER
   const devolver = async (id) => {
-    try {
-      await api.post(`/territorios/${id}/devolver`);
-      toast.success("Território devolvido!");
-      fetchData();
-    } catch {
-      toast.error("Erro ao devolver");
-    }
+    await api.post(`/territorios/${id}/devolver`);
+    toast.success("Devolvido!");
+    fetchData();
   };
 
-  if (loading) {
-    return (
-      <div className="p-6 animate-pulse space-y-4">
-        <div className="h-10 bg-gray-300 rounded"></div>
-        <div className="h-20 bg-gray-300 rounded"></div>
-        <div className="h-20 bg-gray-300 rounded"></div>
-      </div>
-    );
-  }
+  // 🔥 DASHBOARD STATS
+  const total = territorios.length;
+  const disponiveis = territorios.filter(t => t.status === "DISPONIVEL").length;
+  const emUso = territorios.filter(t => t.status === "EM_USO").length;
 
   return (
     <div className="space-y-6">
 
       {/* HEADER */}
       <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold text-white">Territórios</h1>
-          <p className="text-gray-400">Gestão de cartões</p>
-        </div>
+        <h1 className="text-2xl font-bold text-white">Territórios</h1>
+
         <button
           onClick={() => {
             setModalOpen(true);
             setEditingId(null);
             setForm({ numero: "", mapaUrl: "" });
           }}
-          className="bg-blue-600 text-white px-4 py-2 rounded"
+          className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded text-white"
         >
-          + Novo Terriório
+          + Novo
         </button>
       </div>
 
-      {/* FILTROS */}
+      {/* DASHBOARD */}
+      <div className="grid grid-cols-3 gap-4">
 
-      <div className="flex gap-3">   
+        <div className="bg-slate-800 p-4 rounded-xl">
+          <p className="text-gray-400">Total</p>
+          <h2 className="text-2xl font-bold text-white">{total}</h2>
+        </div>
+
+        <div className="bg-green-700 p-4 rounded-xl">
+          <p className="text-green-100">Disponíveis</p>
+          <h2 className="text-2xl font-bold">{disponiveis}</h2>
+        </div>
+
+        <div className="bg-yellow-600 p-4 rounded-xl">
+          <p className="text-yellow-100">Em uso</p>
+          <h2 className="text-2xl font-bold">{emUso}</h2>
+        </div>
+
+      </div>
+
+      {/* FILTROS */}
+      <div className="flex gap-3">
         <input
-          type="text"
-          placeholder="Buscar território..."
+          placeholder="Buscar..."
           value={busca}
           onChange={(e) => setBusca(e.target.value)}
-           className="p-2 rounded border"
+          className="p-2 rounded border w-full"
         />
+
         <select
           value={status}
           onChange={(e) => setStatus(e.target.value)}
@@ -218,90 +201,136 @@ export default function Territorios() {
           <option value="ALL">Todos</option>
           <option value="DISPONIVEL">Disponível</option>
           <option value="EM_USO">Em uso</option>
-        </select>   
+        </select>
       </div>
 
-      {/* TABELA */}
-      <div className="bg-slate-800 rounded-xl overflow-hidden">
+      {/* CARDS */}
+      {loading ? (
+        <div className="text-center text-gray-400">Carregando...</div>
+      ) : (
+        <div className="grid md:grid-cols-3 gap-4">
 
-        {/* HEADER DESKTOP */}
-        <div className="grid grid-cols-4 p-3 text-gray-400 border-b">
-          <span>Cartão</span>
-          <span>Status</span>
-          <span>Responsável</span>
-          <span className="text-right">Ações</span>
-        </div>
+          {territorios.map((t) => (
+            <div key={t.id} className="bg-slate-800 p-4 rounded-xl shadow">
 
-        {/* LINHAS */}
-        {territorios.map((t) => (
-          <div key={t.id} className="grid grid-cols-4 p-3 border-b items-center">
+              <div className="flex justify-between">
+                <h3 className="text-lg font-bold text-white">
+                  #{t.numero}
+                </h3>
 
-            <span>{t.numero}</span>
+                <span
+                  className={`text-xs px-2 py-1 rounded ${
+                    t.status === "DISPONIVEL"
+                      ? "bg-green-200 text-green-700"
+                      : "bg-yellow-200 text-yellow-700"
+                  }`}
+                >
+                  {t.status}
+                </span>
+              </div>
 
-            <span>{t.status}</span>
+              <p className="text-gray-400 mt-2">
+                {t.responsavel?.nome || "Sem responsável"}
+              </p>
 
-            <span>{t.responsavel?.nome || "-"}</span>    
+              <div className="flex gap-2 mt-4">
 
-            {/* AÇÕES */}
-            <div className="flex justify-end gap-2">
-
-              <button onClick={() => editar(t)}>✏️</button>
-
-              <button onClick={() => excluir(t.id)}>🗑️</button>
-
-              {t.status === "DISPONIVEL" ? (
                 <button
                   onClick={() => {
-                    setSelectedTerritorio(t.id);
-                    setModalRetirar(true);
+                    setEditingId(t.id);
+                    setForm(t);
+                    setModalOpen(true);
                   }}
+                  className="text-blue-400"
                 >
-                  Retirar
+                  Editar
                 </button>
-              ) : (
-                <button onClick={() => devolver(t.id)}>
-                  Devolver
+
+                <button
+                  onClick={() => excluir(t.id)}
+                  className="text-red-400"
+                >
+                  Excluir
                 </button>
-              )}
-              
+
+                {t.status === "DISPONIVEL" ? (
+                  <button
+                    onClick={() => {
+                      setSelectedTerritorio(t.id);
+                      setModalRetirar(true);
+                    }}
+                    className="text-yellow-400"
+                  >
+                    Retirar
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => devolver(t.id)}
+                    className="text-green-400"
+                  >
+                    Devolver
+                  </button>
+                )}
+
+              </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+
+        </div>
+      )}
 
       {/* PAGINAÇÃO */}
       <div className="flex justify-between">
-        <button
-          disabled={page === 0}
-          onClick={() => {
-            const p = page - 1;
-            setPage(p);
-            fetchData(p);
-          }}
-        >
-          ← Anterior
+        <button disabled={page === 0} onClick={() => setPage(page - 1)}>
+          ←
         </button>
 
-        <span>Página {page + 1} de {totalPages}</span>
+        <span className="text-gray-400">
+          Página {page + 1} de {totalPages}
+        </span>
 
         <button
           disabled={page + 1 >= totalPages}
-          onClick={() => {
-            const p = page + 1;
-            setPage(p);
-            fetchData(p);
-          }}
+          onClick={() => setPage(page + 1)}
         >
-          Próxima →
+          →
         </button>
       </div>
 
-      {/* MODAL CRUD */}
-      {modalOpen && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center">
-          <div className="bg-white p-6 rounded w-[400px]">
+      {/* MODAL RETIRAR */}
+      {modalRetirar && (
+        <div className="fixed inset-0 bg-black/50 flex justify-center items-center">
+          <div className="bg-white p-6 rounded">
 
-            <h2 className="mb-4 font-bold">
+            <select
+              value={publicadorId}
+              onChange={(e) => setPublicadorId(e.target.value)}
+              className="p-2 border w-full mb-4"
+            >
+              <option value="">Selecione</option>
+              {publicadores.map(p => (
+                <option key={p.id} value={p.id}>
+                  {p.nome}
+                </option>
+              ))}
+            </select>
+
+            <button
+              onClick={retirar}
+              className="bg-blue-600 text-white px-4 py-2 rounded"
+            >
+              Confirmar
+            </button>
+
+          </div>
+        </div>
+      )}
+
+      {modalOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center">
+          <div className="bg-white p-6 rounded-xl w-[400px]">
+
+            <h2 className="font-bold mb-4">
               {editingId ? "Editar" : "Novo"} Território
             </h2>
 
@@ -314,8 +343,8 @@ export default function Territorios() {
               className="w-full mb-3 p-2 border rounded"
             />
 
-             <input
-              placeholder="URL do mapa"
+            <input
+              placeholder="Mapa URL"
               value={form.mapaUrl}
               onChange={(e) =>
                 setForm({ ...form, mapaUrl: e.target.value })
@@ -335,46 +364,10 @@ export default function Territorios() {
                 Salvar
               </button>
             </div>
-          </div>
-        </div>
-      )}  
 
-      {/* MODAL RETIRAR */}
-      {modalRetirar && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center">
-          <div className="bg-white p-6 rounded w-[400px]">
-
-            <h2 className="mb-4 font-bold">Retirar</h2>
-
-            <select
-              value={publicadorId}
-              onChange={(e) => setPublicadorId(e.target.value)}
-              className="w-full p-2 border rounded mb-4"
-            >
-              <option value="">Selecione um publicador</option>
-              {publicadores.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.nome}
-                </option>
-              ))}
-            </select>
-
-            <div className="flex justify-end gap-2">
-              <button onClick={() => setModalRetirar(false)}>
-                Cancelar
-              </button>
-
-              <button
-                onClick={retirar}
-                className="bg-blue-600 text-white px-4 py-1 rounded"
-              >
-                Confirmar
-              </button>
-            </div>
           </div>
         </div>
       )}
     </div>
-     
   );
 }
